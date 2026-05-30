@@ -1,0 +1,2059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Resume Builder - Elevate Your Profile</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --input-focus: #818cf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            
+            /* Resume Preview styling variables */
+            --preview-primary: #3b82f6;
+            --preview-bg: #f8fafc;
+            --preview-card: #ffffff;
+            --preview-title: #1e293b;
+            --preview-body: #475569;
+            --preview-border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Split Screen Container */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        header {
+            padding: 15px 30px;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #a5b4fc, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        /* Left side: Form Editor */
+        .editor-pane {
+            width: 45%;
+            padding: 30px;
+            overflow-y: auto;
+            border-right: 1px solid var(--card-border);
+            background: rgba(30, 41, 59, 0.4);
+        }
+
+        /* Right side: Resume Preview */
+        .preview-pane {
+            width: 55%;
+            padding: 30px;
+            overflow-y: auto;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Action Buttons */
+        .actions-toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Form styling */
+        .form-section {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--card-border);
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+
+        .form-section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+
+        input[type="text"], 
+        input[type="email"], 
+        textarea {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, 
+        input[type="email"]:focus, 
+        textarea:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        /* Image upload specific styling */
+        .image-upload-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px dashed var(--input-border);
+        }
+
+        .image-upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .image-upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            line-height: 1.4;
+        }
+
+        /* Repeater list item styling */
+        .repeater-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .repeater-item {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+        }
+
+        .repeater-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .checkbox-container input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Resume Preview Mockup Container */
+        .resume-paper {
+            width: 100%;
+            max-width: 800px;
+            background: var(--preview-card);
+            color: var(--preview-body);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 842px; /* Standard A4 Aspect Ratio Context */
+        }
+
+        /* Preview Sidebar */
+        .pv-sidebar {
+            background-color: #f8fafc;
+            padding: 40px 24px;
+            border-right: 1px solid var(--preview-border);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .pv-profile {
+            text-align: center;
+            border-bottom: 2px solid var(--preview-border);
+            padding-bottom: 20px;
+        }
+
+        .pv-profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+
+        .pv-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.25;
+            margin-bottom: 8px;
+        }
+
+        .pv-title {
+            font-size: 0.85rem;
+            color: var(--preview-primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .pv-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pv-section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #0f172a;
+            border-bottom: 2px solid var(--preview-border);
+            padding-bottom: 6px;
+        }
+
+        .pv-contact-item {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            color: var(--preview-body);
+            word-break: break-all;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .pv-contact-label {
+            font-weight: 700;
+            color: #334155;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pv-contact-item a {
+            color: var(--preview-primary);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--preview-primary);
+            width: fit-content;
+        }
+
+        .pv-contact-item a:hover {
+            border-bottom-style: solid;
+        }
+
+        /* Preview Main Content */
+        .pv-main {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .pv-content-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pv-content-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            position: relative;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--preview-border);
+        }
+
+        .pv-content-title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background-color: var(--preview-primary);
+        }
+
+        .pv-rich-text {
+            white-space: pre-line;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Pill styled list tags */
+        .pv-pills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .pv-pill {
+            background-color: #eff6ff;
+            color: #1e40af;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            border: 1px solid #dbeafe;
+        }
+
+        .pv-lang-pill {
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Project / Cert Preview Styling */
+        .pv-project-item {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px dashed var(--preview-border);
+        }
+
+        .pv-project-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .pv-project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0f172a;
+        }
+
+        .pv-project-header a {
+            color: var(--preview-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pv-project-header a:hover {
+            text-decoration: underline;
+        }
+
+        .pv-project-desc {
+            font-size: 0.88rem;
+            color: var(--preview-body);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .pv-cert-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #f8fafc;
+            border: 1px solid var(--preview-border);
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .pv-cert-item a {
+            color: var(--preview-primary);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pv-cert-item a:hover {
+            text-decoration: underline;
+        }
+
+        /* Save & Sync Alerts */
+        .sync-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sync-badge.visible {
+            opacity: 1;
+        }
+
+        /* Email Modal Setup */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalScale 0.3s ease-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #a5b4fc;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--text-main);
+        }
+
+        @keyframes modalScale {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Responsive Layout collapse to single pane */
+        @media (max-width: 992px) {
+            .workspace {
+                flex-direction: column;
+                height: auto;
+                overflow: visible;
+            }
+            .editor-pane, .preview-pane {
+                width: 100%;
+                height: auto;
+                overflow: visible;
+            }
+            .preview-pane {
+                padding: 15px;
+            }
+        }
+
+        /* Print Media Query - High Quality Resume Print */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            header, .editor-pane, .actions-toolbar, .modal {
+                display: none !important;
+            }
+            .workspace {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .preview-pane {
+                width: 100% !important;
+                padding: 0 !important;
+                background: white !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+            .resume-paper {
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+                color: #334155 !important;
+            }
+            .pv-sidebar {
+                background-color: #f8fafc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Automatic Resume Builder</h1>
+            <p>Live Real-Time Split-Screen Interactive Editor</p>
+        </div>
+        <div class="actions-toolbar">
+            <span id="syncStatus" class="sync-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Saved Draft
+            </span>
+            <span id="firebaseStatus" class="sync-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; opacity: 1; display: none;">
+                ☁️ Firebase Connected
+            </span>
+            <button type="button" class="btn btn-secondary" onclick="openFirebaseSettings()" style="display: flex; align-items: center; gap: 4px; padding: 8px 14px;">⚙️ Firebase Setup</button>
+            <button type="button" class="btn btn-primary" id="saveCloudBtn" onclick="saveToFirebase()" style="display: none; align-items: center; gap: 4px; padding: 8px 14px;">☁️ Save to Cloud</button>
+            <button type="button" class="btn btn-secondary" onclick="clearDraft()">Clear Draft</button>
+            <button type="button" class="btn btn-success" onclick="window.print()">Download PDF</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Editor Panel -->
+        <div class="editor-pane">
+            <!-- Cloud Resumes Management -->
+            <div id="cloudResumesSection" class="form-section" style="display: none; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2);">
+                <div class="form-section-title" style="color: #a5b4fc;">
+                    <span>☁️ Cloud Saved Resumes</span>
+                    <span id="cloudCount" style="font-size: 0.8rem; background: var(--primary-glow); padding: 2px 8px; border-radius: 6px; color: #c7d2fe;">0 Resumes</span>
+                </div>
+                <div id="cloudResumesList" style="display: grid; gap: 10px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">No cloud drafts saved yet.</span>
+                </div>
+            </div>
+
+            <form id="resumeForm" action="/send_resume" method="POST" onsubmit="prepareSubmitData(event)">
+                <!-- Personal Details -->
+                <div class="form-section">
+                    <div class="form-section-title">Personal Details</div>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" placeholder="e.g. Alexander Thorne" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="title">Professional Title</label>
+                            <input type="text" id="title" name="title" placeholder="e.g. Senior Full-Stack Engineer">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="profile_photo">Profile Photo</label>
+                        <div class="image-upload-container">
+                            <div class="image-upload-btn-wrapper">
+                                <button type="button" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.8rem;">Upload File</button>
+                                <input type="file" id="image_file_input" accept="image/*" onchange="handleImageUpload(event)">
+                            </div>
+                            <span id="file_name_display" style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all;">No file chosen</span>
+                        </div>
+                        <!-- Hidden input to store Base64 value -->
+                        <input type="hidden" id="profile_photo_url" name="profile_photo_url">
+                    </div>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label for="location">Location</label>
+                            <input type="text" id="location" name="location" placeholder="e.g. San Francisco, CA">
+                        </div>
+                        <div class="input-group">
+                            <label for="email">Contact Email</label>
+                            <input type="email" id="email" name="email" placeholder="e.g. alex@example.com">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <div class="form-section-title" style="margin-bottom: 12px; font-size: 0.95rem; border-bottom: none; padding-bottom: 0;">
+                            <span>Professional Profiles</span>
+                            <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="addProfileItem()">+ Add Profile</button>
+                        </div>
+                        <div id="profilesList" class="repeater-container" style="margin-bottom: 12px;"></div>
+                        <input type="hidden" id="professional_profiles" name="professional_profiles">
+                    </div>
+                </div>
+
+                <!-- Professional Sections -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span>About Me</span>
+                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;" onclick="autoGenerateAboutMe(true)">✨ Magic Write</button>
+                    </div>
+                    <div class="input-group">
+                        <textarea id="about_me" name="about_me" placeholder="Write a brief professional summary..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Education</div>
+                    <div class="input-group">
+                        <textarea id="education" name="education" placeholder="List your education qualifications..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Qualifications</div>
+                    <div class="input-group">
+                        <textarea id="qualifications" name="qualifications" placeholder="Core professional qualifications..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Interactive Repeater Lists -->
+                <!-- Projects -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        Projects 
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addProjectItem()">+ Add Project</button>
+                    </div>
+                    <div id="projectsList" class="repeater-container"></div>
+                </div>
+
+                <!-- Certifications -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        Certifications 
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addCertItem()">+ Add Certificate</button>
+                    </div>
+                    <div id="certsList" class="repeater-container"></div>
+                </div>
+
+                <!-- Skills -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        Skills 
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addSkillItem()">+ Add Skill</button>
+                    </div>
+                    <div id="skillsList" class="repeater-container"></div>
+                </div>
+
+                <!-- Languages -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        Languages 
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addLanguageItem()">+ Add Language</button>
+                    </div>
+                    <div id="languagesList" class="repeater-container"></div>
+                </div>
+
+                <!-- Hidden inputs for legacy form submit to Flask backend -->
+                <input type="hidden" name="projects" id="hidden_projects">
+                <input type="hidden" name="certificates" id="hidden_certificates">
+                <input type="hidden" name="skills" id="hidden_skills">
+                <input type="hidden" name="languages" id="hidden_languages">
+                <input type="hidden" id="client_email" name="client_email">
+            </form>
+        </div>
+
+        <!-- Live Preview Panel -->
+        <div class="preview-pane">
+            <div class="resume-paper" id="resumePaper">
+                <!-- Sidebar -->
+                <div class="pv-sidebar">
+                    <div class="pv-profile">
+                        <img class="pv-profile-img" id="pvProfileImg" src="/static/profile.png" alt="Profile photo" style="display: none;">
+                        <h2 class="pv-name" id="pvName">Alexander Thorne</h2>
+                        <div class="pv-title" id="pvTitle">Senior Full-Stack Engineer</div>
+                    </div>
+
+                    <!-- Contact -->
+                    <div class="pv-section" id="pvContactSection">
+                        <div class="pv-section-title">Contact</div>
+                        <div id="pvEmailContainer" class="pv-contact-item" style="display: none;">
+                            <div class="pv-contact-label">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                Email
+                            </div>
+                            <div id="pvEmail">alex@example.com</div>
+                        </div>
+                        <div id="pvLocationContainer" class="pv-contact-item" style="display: none;">
+                            <div class="pv-contact-label">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                Location
+                            </div>
+                            <div id="pvLocation">San Francisco, CA</div>
+                        </div>
+                        <div id="pvProfilesContainer" class="pv-contact-item" style="display: none;">
+                            <div class="pv-contact-label">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                Links
+                            </div>
+                            <div id="pvProfiles" class="pv-rich-text"></div>
+                        </div>
+                    </div>
+
+                    <!-- Skills -->
+                    <div class="pv-section" id="pvSkillsSection" style="display: none;">
+                        <div class="pv-section-title">Skills</div>
+                        <div id="pvSkills" class="pv-pills-container"></div>
+                    </div>
+
+                    <!-- Languages -->
+                    <div class="pv-section" id="pvLanguagesSection" style="display: none;">
+                        <div class="pv-section-title">Languages</div>
+                        <div id="pvLanguages" class="pv-pills-container"></div>
+                    </div>
+                </div>
+
+                <!-- Main Content Panel -->
+                <div class="pv-main">
+                    <!-- About Me -->
+                    <div class="pv-content-section" id="pvAboutSection" style="display: none;">
+                        <div class="pv-content-title">About Me</div>
+                        <div id="pvAbout" class="pv-rich-text">Professional Summary</div>
+                    </div>
+
+                    <!-- Projects -->
+                    <div class="pv-content-section" id="pvProjectsSection" style="display: none;">
+                        <div class="pv-content-title">Projects</div>
+                        <div id="pvProjects"></div>
+                    </div>
+
+                    <!-- Education -->
+                    <div class="pv-content-section" id="pvEducationSection" style="display: none;">
+                        <div class="pv-content-title">Education</div>
+                        <div id="pvEducation" class="pv-rich-text">Education list...</div>
+                    </div>
+
+                    <!-- Certifications -->
+                    <div class="pv-content-section" id="pvCertificatesSection" style="display: none;">
+                        <div class="pv-content-title">Certifications</div>
+                        <div id="pvCertificates"></div>
+                    </div>
+
+                    <!-- Qualifications -->
+                    <div class="pv-content-section" id="pvQualificationsSection" style="display: none;">
+                        <div class="pv-content-title">Qualifications</div>
+                        <div id="pvQualifications" class="pv-rich-text">Qualifications...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    
+    
+    
+        // In-memory data states for Lists
+        let projectsData = [];
+        let certsData = [];
+        let skillsData = [];
+        let languagesData = [];
+        let profilesData = [];
+
+        // Configurations for standard text mappings
+        const mappings = {
+            'name': { textId: 'pvName', defaultText: 'Alexander Thorne' },
+            'title': { textId: 'pvTitle', defaultText: 'Senior Software Engineer' },
+            'email': { textId: 'pvEmail', containerId: 'pvEmailContainer' },
+            'location': { textId: 'pvLocation', containerId: 'pvLocationContainer' },
+            'about_me': { textId: 'pvAbout', containerId: 'pvAboutSection' },
+            'education': { textId: 'pvEducation', containerId: 'pvEducationSection' },
+            'qualifications': { textId: 'pvQualifications', containerId: 'pvQualificationsSection' }
+        };
+
+        // State flag to track if the About Me section is auto-generated or custom edited
+        let aboutMeIsAutoGenerated = true;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup regular bindings
+            Object.keys(mappings).forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    element.addEventListener('input', () => {
+                        updatePreviewField(fieldId);
+                        if (fieldId === 'title') {
+                            autoGenerateAboutMe(false);
+                        }
+                        if (fieldId === 'about_me') {
+                            aboutMeIsAutoGenerated = false;
+                        }
+                        saveDraft();
+                    });
+                }
+            });
+
+            // Load Draft or populate defaults
+            loadDraft();
+            initializeFirebase();
+        });
+
+        // Auto-generate professional description based on Title
+        function autoGenerateAboutMe(force = false) {
+            const titleVal = document.getElementById('title').value.trim();
+            const aboutInput = document.getElementById('about_me');
+            const currentAbout = aboutInput.value.trim();
+
+            if (!titleVal) return;
+
+            // If not forced and the user has custom-edited it, do not overwrite
+            if (!force && !aboutMeIsAutoGenerated && currentAbout !== "") {
+                return;
+            }
+
+            if (force) {
+                aboutMeIsAutoGenerated = true;
+            }
+
+            const titleLower = titleVal.toLowerCase();
+            let bio = "";
+
+            if (titleLower.includes("full-stack") || titleLower.includes("fullstack")) {
+                bio = `Highly motivated and results-driven ${titleVal} with comprehensive expertise in building robust web applications. Skilled in both frontend and backend technologies, specializing in scalable system design, clean architecture, and modern developer practices to deliver high-quality, high-performance digital solutions.`;
+            } else if (titleLower.includes("frontend") || titleLower.includes("front-end") || titleLower.includes("react") || titleLower.includes("ui")) {
+                bio = `Creative and detailed-oriented ${titleVal} specializing in crafting pixel-perfect, responsive, and intuitive user interfaces. Expert in modern JavaScript frameworks, CSS architectures, and user experience principles to build seamless web applications that delight customers.`;
+            } else if (titleLower.includes("backend") || titleLower.includes("back-end") || titleLower.includes("python") || titleLower.includes("node") || titleLower.includes("java")) {
+                bio = `Performance-focused ${titleVal} with a proven track record of architecting secure, scalable, and highly optimized backend services. Proficient in database management, REST/GraphQL API designs, server-side frameworks, and cloud integrations.`;
+            } else if (titleLower.includes("devops") || titleLower.includes("cloud") || titleLower.includes("site reliability") || titleLower.includes("sre")) {
+                bio = `Systems-oriented ${titleVal} dedicated to streamlining operations, automating workflows, and building resilient cloud infrastructure. Experienced in orchestration, CI/CD pipelines, containerization, and monitoring to maximize uptime and efficiency.`;
+            } else if (titleLower.includes("data") || titleLower.includes("scientist") || titleLower.includes("analyst") || titleLower.includes("ml") || titleLower.includes("ai")) {
+                bio = `Analytical and curious ${titleVal} with a deep passion for unlocking insights from complex datasets. Adept at building advanced machine learning models, designing predictive analytics systems, and delivering data-driven solutions to solve critical business problems.`;
+            } else if (titleLower.includes("product") || titleLower.includes("manager") || titleLower.includes("owner")) {
+                bio = `Strategic and user-focused ${titleVal} with experience guiding cross-functional teams from conceptualization to launch. Skilled in product lifecycle management, user research, agile methodologies, and aligning product roadmap with business objectives.`;
+            } else if (titleLower.includes("qa") || titleLower.includes("test") || titleLower.includes("quality")) {
+                bio = `Detail-oriented ${titleVal} dedicated to ensuring the highest standards of software quality and reliability. Experienced in automated and manual testing methodologies, identifying critical performance bottlenecks, and collaborating with developers to deliver error-free software.`;
+            } else {
+                bio = `Dedicated and innovative ${titleVal} with a strong foundation in modern technology and software engineering concepts. Proven ability to solve complex problems, collaborate effectively in team environments, and quickly learn new frameworks and industry best practices.`;
+            }
+
+            aboutInput.value = bio;
+            updatePreviewField('about_me');
+            saveDraft();
+        }
+
+        // --- DYNAMIC PROFESSIONAL PROFILES LOGIC ---
+        function addProfileItem(data = { platform: 'LinkedIn', url: '', checked: true }) {
+            const id = 'prof_' + Date.now() + Math.random().toString(36).substr(2, 4);
+            const item = { id, ...data };
+            profilesData.push(item);
+            renderProfileItem(item);
+            updateProfilesPreview();
+            saveDraft();
+        }
+
+        function renderProfileItem(item) {
+            const container = document.getElementById('profilesList');
+            const div = document.createElement('div');
+            div.className = 'repeater-item';
+            div.style.padding = '10px 16px';
+            div.id = item.id;
+            
+            const platforms = ['LinkedIn', 'GitHub', 'LeetCode', 'Portfolio', 'Custom'];
+            let optionsHtml = platforms.map(p => 
+                `<option value="${p}" ${item.platform === p ? 'selected' : ''}>${p}</option>`
+            ).join('');
+
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <label class="checkbox-container">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleProfileChecked('${item.id}', this.checked)">
+                        Include
+                    </label>
+                    <select onchange="updateProfilePlatform('${item.id}', this.value)" style="background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; color: var(--text-main); padding: 6px 10px; font-size: 0.85rem; outline: none;">
+                        ${optionsHtml}
+                    </select>
+                    <input type="text" placeholder="Profile URL" value="${item.url}" style="flex: 1; padding: 6px 10px;" oninput="updateProfileUrl('${item.id}', this.value)">
+                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeProfileItem('${item.id}')">Delete</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function toggleProfileChecked(id, checked) {
+            const item = profilesData.find(p => p.id === id);
+            if (item) {
+                item.checked = checked;
+                updateProfilesPreview();
+                saveDraft();
+            }
+        }
+
+        function updateProfilePlatform(id, platform) {
+            const item = profilesData.find(p => p.id === id);
+            if (item) {
+                item.platform = platform;
+                updateProfilesPreview();
+                saveDraft();
+            }
+        }
+
+        function updateProfileUrl(id, url) {
+            const item = profilesData.find(p => p.id === id);
+            if (item) {
+                item.url = url;
+                updateProfilesPreview();
+                saveDraft();
+            }
+        }
+
+        function removeProfileItem(id) {
+            profilesData = profilesData.filter(p => p.id !== id);
+            const element = document.getElementById(id);
+            if (element) element.remove();
+            updateProfilesPreview();
+            saveDraft();
+        }
+
+        function updateProfilesPreview() {
+            const container = document.getElementById('pvProfilesContainer');
+            const targetDiv = document.getElementById('pvProfiles');
+            targetDiv.innerHTML = '';
+
+            const checkedProfiles = profilesData.filter(p => p.checked && p.url.trim());
+            
+            if (checkedProfiles.length === 0) {
+                container.style.display = 'none';
+                document.getElementById('professional_profiles').value = '';
+                return;
+            }
+
+            // Serialize profile URLs with pipe separator to send to Flask backend
+            const serialized = checkedProfiles.map(p => {
+                let text = p.url.trim();
+                return text;
+            }).join(' | ');
+            document.getElementById('professional_profiles').value = serialized;
+
+            checkedProfiles.forEach(p => {
+                let url = p.url.trim();
+                let displayUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '');
+                if (displayUrl.length > 25) displayUrl = displayUrl.substring(0, 22) + '...';
+                
+                let linkUrl = url;
+                if (!/^https?:\/\//i.test(linkUrl)) {
+                    linkUrl = 'https://' + linkUrl;
+                }
+
+                const platformLabel = document.createElement('span');
+                platformLabel.style.fontWeight = '700';
+                platformLabel.style.fontSize = '0.72rem';
+                platformLabel.style.color = '#475569';
+                platformLabel.style.textTransform = 'uppercase';
+                platformLabel.style.marginRight = '4px';
+                platformLabel.textContent = p.platform + ': ';
+
+                const anchor = document.createElement('a');
+                anchor.href = linkUrl;
+                anchor.target = '_blank';
+                anchor.textContent = displayUrl;
+
+                const wrapper = document.createElement('div');
+                wrapper.style.marginBottom = '6px';
+                wrapper.appendChild(platformLabel);
+                wrapper.appendChild(anchor);
+                
+                targetDiv.appendChild(wrapper);
+            });
+
+            container.style.display = 'block';
+        }
+
+        // --- FIREBASE FIRESTORE CLOUD DATABASE STORAGE ---
+        let firebaseApp = null;
+        let firestoreDb = null;
+        let isFirebaseInitialized = false;
+
+        // Default Firebase project config — pre-wired so no manual setup is needed
+        const DEFAULT_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDvh0hxKsLjycOlX08fccPoFYVPF7wGSbc",
+            authDomain: "resume-8518a.firebaseapp.com",
+            projectId: "resume-8518a",
+            storageBucket: "resume-8518a.firebasestorage.app",
+            messagingSenderId: "122915919138",
+            appId: "1:122915919138:web:2f5c526fb37f2e5e5ac17b",
+            measurementId: "G-T3MYEBMVSW"
+        };
+
+        function openFirebaseSettings() {
+            // Populate modal fields — prefer user-saved config, otherwise show the default
+            const savedConfig = localStorage.getItem('fb_config');
+            const config = savedConfig ? JSON.parse(savedConfig) : DEFAULT_FIREBASE_CONFIG;
+            document.getElementById('fb_apiKey').value = config.apiKey || '';
+            document.getElementById('fb_authDomain').value = config.authDomain || '';
+            document.getElementById('fb_projectId').value = config.projectId || '';
+            document.getElementById('fb_appId').value = config.appId || '';
+            document.getElementById('firebaseModal').style.display = 'flex';
+        }
+
+        function closeFirebaseSettings() {
+            document.getElementById('firebaseModal').style.display = 'none';
+        }
+
+        function saveFirebaseConfig() {
+            const config = {
+                apiKey: document.getElementById('fb_apiKey').value.trim(),
+                authDomain: document.getElementById('fb_authDomain').value.trim(),
+                projectId: document.getElementById('fb_projectId').value.trim(),
+                appId: document.getElementById('fb_appId').value.trim()
+            };
+
+            if (!config.apiKey || !config.projectId || !config.appId) {
+                alert("Please fill in at least API Key, Project ID, and App ID.");
+                return;
+            }
+
+            localStorage.setItem('fb_config', JSON.stringify(config));
+            closeFirebaseSettings();
+            initializeFirebase(config);
+        }
+
+        function initializeFirebase(config = null) {
+            if (!config) {
+                // First try a user-saved config, then fall back to the built-in default
+                const savedConfig = localStorage.getItem('fb_config');
+                config = savedConfig ? JSON.parse(savedConfig) : DEFAULT_FIREBASE_CONFIG;
+            }
+
+            try {
+                // If an app is already initialized, clear it first
+                if (firebase.apps.length > 0) {
+                    firebase.app().delete().then(() => {
+                        doInit(config);
+                    });
+                } else {
+                    doInit(config);
+                }
+            } catch (e) {
+                console.error("Firebase init failed: ", e);
+            }
+        }
+
+        function doInit(config) {
+            firebaseApp = firebase.initializeApp(config);
+            firestoreDb = firebase.firestore();
+            isFirebaseInitialized = true;
+
+            // Show Cloud Indicator and saveToCloud button
+            document.getElementById('firebaseStatus').style.display = 'inline-flex';
+            document.getElementById('saveCloudBtn').style.display = 'inline-flex';
+            document.getElementById('cloudResumesSection').style.display = 'block';
+
+            // Fetch saved cloud drafts
+            loadCloudResumes();
+        }
+
+        // Save current resume state to Firestore
+        async function saveToFirebase() {
+            if (!isFirebaseInitialized || !firestoreDb) {
+                alert("Firebase is not connected. Please click Setup first!");
+                return;
+            }
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const title = document.getElementById('title').value.trim();
+
+            if (!name) {
+                alert("Please enter your Full Name in Personal Details before saving to the cloud.");
+                return;
+            }
+
+            // We will construct the draft object exactly like saveDraft does
+            const draftData = {};
+            Object.keys(mappings).forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) draftData[fieldId] = element.value;
+            });
+            
+            draftData['professional_profiles'] = document.getElementById('professional_profiles').value;
+            draftData['profile_photo_url'] = document.getElementById('profile_photo_url').value;
+            draftData['uploadedFileName'] = document.getElementById('file_name_display').textContent;
+
+            draftData['projects'] = projectsData;
+            draftData['certs'] = certsData;
+            draftData['skills'] = skillsData;
+            draftData['languages'] = languagesData;
+            draftData['profiles'] = profilesData;
+            draftData['aboutMeIsAutoGenerated'] = aboutMeIsAutoGenerated;
+
+            // Include a clean document descriptor
+            const docId = (email || name).toLowerCase().replace(/[^a-z0-9]/g, '-');
+            const docData = {
+                docId: docId,
+                name: name,
+                email: email || 'No Email Provided',
+                title: title || 'No Title Provided',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                resumeData: JSON.stringify(draftData)
+            };
+
+            const saveBtn = document.getElementById('saveCloudBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = '☁️ Saving...';
+
+            try {
+                await firestoreDb.collection('resumes').doc(docId).set(docData);
+                
+                // Show a successful toast/glowing alert
+                const syncStatus = document.getElementById('syncStatus');
+                syncStatus.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Synced to Cloud Database!
+                `;
+                syncStatus.style.background = 'rgba(16, 185, 129, 0.15)';
+                syncStatus.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                syncStatus.style.color = '#10b981';
+                syncStatus.classList.add('visible');
+
+                setTimeout(() => {
+                    syncStatus.classList.remove('visible');
+                    // Reset text
+                    setTimeout(() => {
+                        syncStatus.style.background = '';
+                        syncStatus.style.borderColor = '';
+                        syncStatus.style.color = '';
+                        syncStatus.innerHTML = `
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Saved Draft
+                        `;
+                    }, 500);
+                }, 2000);
+
+            } catch (e) {
+                console.error("Cloud save failed: ", e);
+                alert("Failed to save to cloud: " + e.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '☁️ Save to Cloud';
+            }
+        }
+
+        // Fetch and render cloud resumes list
+        function loadCloudResumes() {
+            if (!firestoreDb) return;
+
+            firestoreDb.collection('resumes').orderBy('updatedAt', 'desc').onSnapshot(snapshot => {
+                const listContainer = document.getElementById('cloudResumesList');
+                const countBadge = document.getElementById('cloudCount');
+                listContainer.innerHTML = '';
+
+                countBadge.textContent = `${snapshot.size} Resumes`;
+
+                if (snapshot.empty) {
+                    listContainer.innerHTML = `<span style="font-size: 0.85rem; color: var(--text-muted);">No cloud drafts saved yet.</span>`;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    
+                    const row = document.createElement('div');
+                    row.className = 'repeater-item';
+                    row.style.padding = '12px';
+                    row.style.background = 'rgba(15, 23, 42, 0.3)';
+                    row.style.border = '1px solid var(--card-border)';
+                    row.style.borderRadius = '10px';
+                    row.style.display = 'flex';
+                    row.style.justifyContent = 'space-between';
+                    row.style.alignItems = 'center';
+                    row.style.cursor = 'pointer';
+                    row.onclick = () => loadResumeFromCloud(data.resumeData);
+
+                    const details = document.createElement('div');
+                    details.style.display = 'flex';
+                    details.style.flexDirection = 'column';
+                    details.style.gap = '4px';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.style.fontSize = '0.9rem';
+                    nameSpan.style.fontWeight = '600';
+                    nameSpan.style.color = '#a5b4fc';
+                    nameSpan.textContent = data.name;
+
+                    const titleSpan = document.createElement('span');
+                    titleSpan.style.fontSize = '0.75rem';
+                    titleSpan.style.color = 'var(--text-muted)';
+                    titleSpan.textContent = `${data.title} • ${data.email}`;
+
+                    details.appendChild(nameSpan);
+                    details.appendChild(titleSpan);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'btn btn-danger';
+                    deleteBtn.style.padding = '4px 8px';
+                    deleteBtn.style.fontSize = '0.7rem';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation(); // prevent loading
+                        deleteResumeFromCloud(doc.id);
+                    };
+
+                    row.appendChild(details);
+                    row.appendChild(deleteBtn);
+                    listContainer.appendChild(row);
+                });
+            }, err => {
+                console.error("Firestore listen failed: ", err);
+            });
+        }
+
+        // Load specific resume data
+        function loadResumeFromCloud(jsonData) {
+            try {
+                const draftData = JSON.parse(jsonData);
+                localStorage.setItem('resume_draft', jsonData);
+                
+                // Trigger page refresh to reload everything cleanly from local draft
+                loadDraft();
+                
+                // Show floating sync feedback
+                const syncStatus = document.getElementById('syncStatus');
+                syncStatus.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Restored Draft from Cloud!
+                `;
+                syncStatus.style.background = 'rgba(99, 102, 241, 0.15)';
+                syncStatus.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                syncStatus.style.color = '#a5b4fc';
+                syncStatus.classList.add('visible');
+
+                setTimeout(() => {
+                    syncStatus.classList.remove('visible');
+                    setTimeout(() => {
+                        syncStatus.style.background = '';
+                        syncStatus.style.borderColor = '';
+                        syncStatus.style.color = '';
+                        syncStatus.innerHTML = `
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Saved Draft
+                        `;
+                    }, 500);
+                }, 2000);
+            } catch (e) {
+                console.error("Failed to parse cloud resume data: ", e);
+                alert("Failed to load cloud resume.");
+            }
+        }
+
+        async function deleteResumeFromCloud(docId) {
+            if (!confirm("Are you sure you want to permanently delete this resume from the cloud database?")) {
+                return;
+            }
+
+            try {
+                await firestoreDb.collection('resumes').doc(docId).delete();
+            } catch (e) {
+                console.error("Failed to delete cloud resume: ", e);
+                alert("Delete failed: " + e.message);
+            }
+        }
+
+        function updatePreviewField(fieldId) {
+            const inputVal = document.getElementById(fieldId).value.trim();
+            const config = mappings[fieldId];
+            const pvElement = document.getElementById(config.textId);
+
+            if (config.containerId) {
+                const container = document.getElementById(config.containerId);
+                if (inputVal) {
+                    pvElement.textContent = inputVal;
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            } else {
+                pvElement.textContent = inputVal || config.defaultText;
+            }
+        }
+
+        // Handle Profile Image Upload
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('file_name_display').textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                document.getElementById('profile_photo_url').value = base64Data;
+                const imgElement = document.getElementById('pvProfileImg');
+                imgElement.src = base64Data;
+                imgElement.style.display = 'inline-block';
+                saveDraft();
+            };
+            reader.readAsDataURL(file);
+        }
+
+
+
+        // --- REPEATER LIST LOGIC ---
+
+        // PROJECTS
+        function addProjectItem(data = { name: '', link: '', desc: '', checked: true }) {
+            const id = 'proj_' + Date.now() + Math.random().toString(36).substr(2, 4);
+            const item = { id, ...data };
+            projectsData.push(item);
+            renderProjectItem(item);
+            updateProjectsPreview();
+            saveDraft();
+        }
+
+        function renderProjectItem(item) {
+            const container = document.getElementById('projectsList');
+            const div = document.createElement('div');
+            div.className = 'repeater-item';
+            div.id = item.id;
+            div.innerHTML = `
+                <div class="repeater-item-header">
+                    <label class="checkbox-container">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleProjectChecked('${item.id}', this.checked)">
+                        Include in Resume
+                    </label>
+                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeProjectItem('${item.id}')">Delete</button>
+                </div>
+                <div class="grid-2">
+                    <input type="text" placeholder="Project Name" value="${item.name}" oninput="updateProjectName('${item.id}', this.value)">
+                    <input type="text" placeholder="Project Link (URL)" value="${item.link}" oninput="updateProjectLink('${item.id}', this.value)">
+                </div>
+                <textarea placeholder="Description (e.g. Built fully responsive SaaS using Flask)" style="min-height: 60px;" oninput="updateProjectDesc('${item.id}', this.value)">${item.desc}</textarea>
+            `;
+            container.appendChild(div);
+        }
+
+        function toggleProjectChecked(id, checked) {
+            const item = projectsData.find(p => p.id === id);
+            if (item) {
+                item.checked = checked;
+                updateProjectsPreview();
+                saveDraft();
+            }
+        }
+
+        function updateProjectName(id, val) {
+            const item = projectsData.find(p => p.id === id);
+            if (item) {
+                item.name = val;
+                updateProjectsPreview();
+                saveDraft();
+            }
+        }
+
+        function updateProjectLink(id, val) {
+            const item = projectsData.find(p => p.id === id);
+            if (item) {
+                item.link = val;
+                updateProjectsPreview();
+                saveDraft();
+            }
+        }
+
+        function updateProjectDesc(id, val) {
+            const item = projectsData.find(p => p.id === id);
+            if (item) {
+                item.desc = val;
+                updateProjectsPreview();
+                saveDraft();
+            }
+        }
+
+        function removeProjectItem(id) {
+            projectsData = projectsData.filter(p => p.id !== id);
+            const element = document.getElementById(id);
+            if (element) element.remove();
+            updateProjectsPreview();
+            saveDraft();
+        }
+
+        function updateProjectsPreview() {
+            const previewSection = document.getElementById('pvProjectsSection');
+            const targetDiv = document.getElementById('pvProjects');
+            targetDiv.innerHTML = '';
+
+            const checkedProjects = projectsData.filter(p => p.checked && (p.name || p.desc));
+            
+            if (checkedProjects.length === 0) {
+                previewSection.style.display = 'none';
+                return;
+            }
+
+            checkedProjects.forEach(p => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'pv-project-item';
+                
+                let titleHtml = `<span>${p.name || 'Untitled Project'}</span>`;
+                if (p.link.trim()) {
+                    let fullUrl = p.link.trim();
+                    if (!/^https?:\/\//i.test(fullUrl)) {
+                        fullUrl = 'https://' + fullUrl;
+                    }
+                    titleHtml = `<a href="${fullUrl}" target="_blank">${p.name || 'Link'} &#8599;</a>`;
+                }
+
+                itemDiv.innerHTML = `
+                    <div class="pv-project-header">
+                        ${titleHtml}
+                    </div>
+                    ${p.desc ? `<div class="pv-project-desc pv-rich-text">${p.desc}</div>` : ''}
+                `;
+                targetDiv.appendChild(itemDiv);
+            });
+
+            previewSection.style.display = 'block';
+        }
+
+        // CERTIFICATIONS (with File Upload)
+        function addCertItem(data = { name: '', fileUrl: '', fileName: '', checked: true }) {
+            const id = 'cert_' + Date.now() + Math.random().toString(36).substr(2, 4);
+            const item = { id, ...data };
+            certsData.push(item);
+            renderCertItem(item);
+            updateCertsPreview();
+            saveDraft();
+        }
+
+        function renderCertItem(item) {
+            const container = document.getElementById('certsList');
+            const div = document.createElement('div');
+            div.className = 'repeater-item';
+            div.id = item.id;
+            div.innerHTML = `
+                <div class="repeater-item-header">
+                    <label class="checkbox-container">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCertChecked('${item.id}', this.checked)">
+                        Include in Resume
+                    </label>
+                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeCertItem('${item.id}')">Delete</button>
+                </div>
+                <div class="grid-2">
+                    <input type="text" placeholder="Certification Name" value="${item.name}" oninput="updateCertName('${item.id}', this.value)">
+                    <div class="image-upload-container" style="padding: 5px;">
+                        <div class="image-upload-btn-wrapper">
+                            <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.75rem;">Upload Document</button>
+                            <input type="file" accept="image/*,application/pdf" onchange="handleCertUpload(event, '${item.id}')">
+                        </div>
+                        <span id="file_lbl_${item.id}" style="font-size: 0.7rem; color: var(--text-muted); word-break: break-all;">${item.fileName || 'No file uploaded'}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function toggleCertChecked(id, checked) {
+            const item = certsData.find(c => c.id === id);
+            if (item) {
+                item.checked = checked;
+                updateCertsPreview();
+                saveDraft();
+            }
+        }
+
+        function updateCertName(id, val) {
+            const item = certsData.find(c => c.id === id);
+            if (item) {
+                item.name = val;
+                updateCertsPreview();
+                saveDraft();
+            }
+        }
+
+        function handleCertUpload(event, id) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById(`file_lbl_${id}`).textContent = file.name;
+            const item = certsData.find(c => c.id === id);
+            if (item) {
+                item.fileName = file.name;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                if (item) {
+                    item.fileUrl = base64Data;
+                    updateCertsPreview();
+                    saveDraft();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCertItem(id) {
+            certsData = certsData.filter(c => c.id !== id);
+            const element = document.getElementById(id);
+            if (element) element.remove();
+            updateCertsPreview();
+            saveDraft();
+        }
+
+        function updateCertsPreview() {
+            const previewSection = document.getElementById('pvCertificatesSection');
+            const targetDiv = document.getElementById('pvCertificates');
+            targetDiv.innerHTML = '';
+
+            const checkedCerts = certsData.filter(c => c.checked && c.name);
+
+            if (checkedCerts.length === 0) {
+                previewSection.style.display = 'none';
+                return;
+            }
+
+            checkedCerts.forEach(c => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'pv-cert-item';
+                
+                let fileLink = '';
+                if (c.fileUrl) {
+                    fileLink = `<a href="${c.fileUrl}" download="${c.fileName || 'Certificate'}" title="Download Certificate Document">View Cert &#128196;</a>`;
+                }
+
+                itemDiv.innerHTML = `
+                    <span>${c.name}</span>
+                    ${fileLink}
+                `;
+                targetDiv.appendChild(itemDiv);
+            });
+
+            previewSection.style.display = 'block';
+        }
+
+        // SKILLS
+        function addSkillItem(data = { name: '', checked: true }) {
+            const id = 'skill_' + Date.now() + Math.random().toString(36).substr(2, 4);
+            const item = { id, ...data };
+            skillsData.push(item);
+            renderSkillItem(item);
+            updateSkillsPreview();
+            saveDraft();
+        }
+
+        function renderSkillItem(item) {
+            const container = document.getElementById('skillsList');
+            const div = document.createElement('div');
+            div.className = 'repeater-item';
+            div.style.padding = '10px 16px';
+            div.id = item.id;
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <label class="checkbox-container">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleSkillChecked('${item.id}', this.checked)">
+                        Include
+                    </label>
+                    <input type="text" placeholder="Skill Name" value="${item.name}" style="flex: 1; padding: 6px 10px;" oninput="updateSkillName('${item.id}', this.value)">
+                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeSkillItem('${item.id}')">Delete</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function toggleSkillChecked(id, checked) {
+            const item = skillsData.find(s => s.id === id);
+            if (item) {
+                item.checked = checked;
+                updateSkillsPreview();
+                saveDraft();
+            }
+        }
+
+        function updateSkillName(id, val) {
+            const item = skillsData.find(s => s.id === id);
+            if (item) {
+                item.name = val;
+                updateSkillsPreview();
+                saveDraft();
+            }
+        }
+
+        function removeSkillItem(id) {
+            skillsData = skillsData.filter(s => s.id !== id);
+            const element = document.getElementById(id);
+            if (element) element.remove();
+            updateSkillsPreview();
+            saveDraft();
+        }
+
+        function updateSkillsPreview() {
+            const previewSection = document.getElementById('pvSkillsSection');
+            const targetDiv = document.getElementById('pvSkills');
+            targetDiv.innerHTML = '';
+
+            const checkedSkills = skillsData.filter(s => s.checked && s.name);
+            
+            if (checkedSkills.length === 0) {
+                previewSection.style.display = 'none';
+                return;
+            }
+
+            checkedSkills.forEach(s => {
+                const pill = document.createElement('span');
+                pill.className = 'pv-pill';
+                pill.textContent = s.name.trim();
+                targetDiv.appendChild(pill);
+            });
+            previewSection.style.display = 'block';
+        }
+
+        // LANGUAGES
+        function addLanguageItem(data = { name: '', checked: true }) {
+            const id = 'lang_' + Date.now() + Math.random().toString(36).substr(2, 4);
+            const item = { id, ...data };
+            languagesData.push(item);
+            renderLanguageItem(item);
+            updateLanguagesPreview();
+            saveDraft();
+        }
+
+        function renderLanguageItem(item) {
+            const container = document.getElementById('languagesList');
+            const div = document.createElement('div');
+            div.className = 'repeater-item';
+            div.style.padding = '10px 16px';
+            div.id = item.id;
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <label class="checkbox-container">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleLanguageChecked('${item.id}', this.checked)">
+                        Include
+                    </label>
+                    <input type="text" placeholder="e.g. English (Native)" value="${item.name}" style="flex: 1; padding: 6px 10px;" oninput="updateLanguageName('${item.id}', this.value)">
+                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeLanguageItem('${item.id}')">Delete</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function toggleLanguageChecked(id, checked) {
+            const item = languagesData.find(l => l.id === id);
+            if (item) {
+                item.checked = checked;
+                updateLanguagesPreview();
+                saveDraft();
+            }
+        }
+
+        function updateLanguageName(id, val) {
+            const item = languagesData.find(l => l.id === id);
+            if (item) {
+                item.name = val;
+                updateLanguagesPreview();
+                saveDraft();
+            }
+        }
+
+        function removeLanguageItem(id) {
+            languagesData = languagesData.filter(l => l.id !== id);
+            const element = document.getElementById(id);
+            if (element) element.remove();
+            updateLanguagesPreview();
+            saveDraft();
+        }
+
+        function updateLanguagesPreview() {
+            const previewSection = document.getElementById('pvLanguagesSection');
+            const targetDiv = document.getElementById('pvLanguages');
+            targetDiv.innerHTML = '';
+
+            const checkedLangs = languagesData.filter(l => l.checked && l.name);
+            
+            if (checkedLangs.length === 0) {
+                previewSection.style.display = 'none';
+                return;
+            }
+
+            checkedLangs.forEach(l => {
+                const pill = document.createElement('span');
+                pill.className = 'pv-lang-pill';
+                pill.textContent = l.name.trim();
+                targetDiv.appendChild(pill);
+            });
+            previewSection.style.display = 'block';
+        }
+
+        // --- SUBMIT PREPARATION ---
+        function prepareSubmitData(event) {
+            const activeProjects = projectsData.filter(p => p.checked && (p.name || p.desc)).map(p => {
+                let header = p.name || 'Project';
+                if (p.link) header += ` (${p.link})`;
+                return `${header}\n${p.desc || ''}`;
+            }).join('\n\n');
+
+            const activeCerts = certsData.filter(c => c.checked && c.name).map(c => {
+                return c.name;
+            }).join('\n');
+
+            const activeSkills = skillsData.filter(s => s.checked && s.name).map(s => s.name).join(', ');
+            const activeLangs = languagesData.filter(l => l.checked && l.name).map(l => l.name).join(', ');
+
+            document.getElementById('hidden_projects').value = activeProjects;
+            document.getElementById('hidden_certificates').value = activeCerts;
+            document.getElementById('hidden_skills').value = activeSkills;
+            document.getElementById('hidden_languages').value = activeLangs;
+        }
+
+        // --- LOCAL STORAGE & DRAFTS ---
+        function saveDraft() {
+            const draftData = {};
+            Object.keys(mappings).forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) draftData[fieldId] = element.value;
+            });
+            
+            draftData['professional_profiles'] = document.getElementById('professional_profiles').value;
+            draftData['profile_photo_url'] = document.getElementById('profile_photo_url').value;
+            draftData['uploadedFileName'] = document.getElementById('file_name_display').textContent;
+
+            draftData['projects'] = projectsData;
+            draftData['certs'] = certsData;
+            draftData['skills'] = skillsData;
+            draftData['languages'] = languagesData;
+            draftData['profiles'] = profilesData;
+            draftData['aboutMeIsAutoGenerated'] = aboutMeIsAutoGenerated;
+
+            localStorage.setItem('resume_draft', JSON.stringify(draftData));
+
+            const badge = document.getElementById('syncStatus');
+            badge.classList.add('visible');
+            setTimeout(() => {
+                badge.classList.remove('visible');
+            }, 1500);
+        }
+
+        function loadDraft() {
+            const rawDraft = localStorage.getItem('resume_draft');
+            if (!rawDraft) {
+                addSkillItem({ name: 'React', checked: true });
+                addSkillItem({ name: 'Node.js', checked: true });
+                addLanguageItem({ name: 'English (Native)', checked: true });
+                addProjectItem({ name: 'CloudScale SaaS', link: 'https://github.com/alex/saas', desc: 'Built serverless system using AWS.', checked: true });
+                addCertItem({ name: 'AWS Certified Solutions Architect', fileUrl: '', fileName: '', checked: true });
+                addProfileItem({ platform: 'LinkedIn', url: 'https://linkedin.com/in/alex', checked: true });
+                addProfileItem({ platform: 'GitHub', url: 'https://github.com/alex', checked: true });
+                return;
+            }
+
+            try {
+                const draftData = JSON.parse(rawDraft);
+                
+                if (draftData['aboutMeIsAutoGenerated'] !== undefined) {
+                    aboutMeIsAutoGenerated = draftData['aboutMeIsAutoGenerated'];
+                } else {
+                    aboutMeIsAutoGenerated = true;
+                }
+
+                Object.keys(mappings).forEach(fieldId => {
+                    const val = draftData[fieldId];
+                    const element = document.getElementById(fieldId);
+                    if (element && val !== undefined) {
+                        element.value = val;
+                        updatePreviewField(fieldId);
+                    }
+                });
+
+                if (draftData['profiles']) {
+                    document.getElementById('profilesList').innerHTML = '';
+                    profilesData = [];
+                    draftData['profiles'].forEach(p => addProfileItem(p));
+                } else if (draftData['professional_profiles']) {
+                    document.getElementById('profilesList').innerHTML = '';
+                    profilesData = [];
+                    const legacyUrls = draftData['professional_profiles'].split(/[,|]+/).map(u => u.trim()).filter(Boolean);
+                    legacyUrls.forEach(url => {
+                        let platform = 'LinkedIn';
+                        if (url.toLowerCase().includes('github')) platform = 'GitHub';
+                        else if (url.toLowerCase().includes('leetcode')) platform = 'LeetCode';
+                        else if (url.toLowerCase().includes('portfolio')) platform = 'Portfolio';
+                        addProfileItem({ platform, url, checked: true });
+                    });
+                }
+
+                if (draftData['profile_photo_url']) {
+                    document.getElementById('profile_photo_url').value = draftData['profile_photo_url'];
+                    const imgElement = document.getElementById('pvProfileImg');
+                    imgElement.src = draftData['profile_photo_url'];
+                    imgElement.style.display = 'inline-block';
+                }
+
+                if (draftData['uploadedFileName']) {
+                    document.getElementById('file_name_display').textContent = draftData['uploadedFileName'];
+                }
+
+                if (draftData['projects']) {
+                    document.getElementById('projectsList').innerHTML = '';
+                    projectsData = [];
+                    draftData['projects'].forEach(p => addProjectItem(p));
+                }
+                if (draftData['certs']) {
+                    document.getElementById('certsList').innerHTML = '';
+                    certsData = [];
+                    draftData['certs'].forEach(c => addCertItem(c));
+                }
+                if (draftData['skills']) {
+                    document.getElementById('skillsList').innerHTML = '';
+                    skillsData = [];
+                    draftData['skills'].forEach(s => addSkillItem(s));
+                }
+                if (draftData['languages']) {
+                    document.getElementById('languagesList').innerHTML = '';
+                    languagesData = [];
+                    draftData['languages'].forEach(l => addLanguageItem(l));
+                }
+
+            } catch (e) {
+                console.error("Failed to parse resume draft: ", e);
+            }
+        }
+
+        function clearDraft() {
+            if (confirm("Are you sure you want to clear your current resume progress?")) {
+                localStorage.removeItem('resume_draft');
+                document.getElementById('resumeForm').reset();
+                document.getElementById('profile_photo_url').value = '';
+                document.getElementById('file_name_display').textContent = 'No file chosen';
+                document.getElementById('pvProfileImg').style.display = 'none';
+
+                document.getElementById('projectsList').innerHTML = '';
+                document.getElementById('certsList').innerHTML = '';
+                document.getElementById('skillsList').innerHTML = '';
+                document.getElementById('languagesList').innerHTML = '';
+                document.getElementById('profilesList').innerHTML = '';
+                projectsData = [];
+                certsData = [];
+                skillsData = [];
+                languagesData = [];
+                profilesData = [];
+                aboutMeIsAutoGenerated = true;
+
+                Object.keys(mappings).forEach(fieldId => {
+                    updatePreviewField(fieldId);
+                });
+                updateProfilesPreview();
+                updateProjectsPreview();
+                updateCertsPreview();
+                updateSkillsPreview();
+                updateLanguagesPreview();
+            }
+        }
+
+    </script>
+
+    <!-- Firebase Setup Modal -->
+    <div id="firebaseModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ Firebase Setup</h3>
+                <button type="button" class="close-btn" onclick="closeFirebaseSettings()">&times;</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                Enter your Firebase Web App credentials to connect to Firestore. Once connected, your resume drafts will sync to the cloud database automatically!
+            </p>
+            <div class="input-group">
+                <label for="fb_apiKey" style="font-size: 0.78rem;">API Key</label>
+                <input type="text" id="fb_apiKey" placeholder="AIzaSy...">
+            </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label for="fb_authDomain" style="font-size: 0.78rem;">Auth Domain</label>
+                <input type="text" id="fb_authDomain" placeholder="app-name.firebaseapp.com">
+            </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label for="fb_projectId" style="font-size: 0.78rem;">Project ID</label>
+                <input type="text" id="fb_projectId" placeholder="project-id-123">
+            </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label for="fb_appId" style="font-size: 0.78rem;">App ID</label>
+                <input type="text" id="fb_appId" placeholder="1:123:web:abcd...">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeFirebaseSettings()" style="padding: 8px 12px; font-size: 0.85rem;">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveFirebaseConfig()" style="padding: 8px 16px; font-size: 0.85rem;">Save & Connect</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

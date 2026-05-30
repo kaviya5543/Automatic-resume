@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ name }} - Resume</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --primary: #3b82f6;
+            --primary-light: #60a5fa;
+            --bg-body: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-title: #0f172a;
+            --text-body: #475569;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-body);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .resume-container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Control Panel / Actions */
+        .control-panel {
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+            padding: 24px 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
+        .control-panel h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-panel form {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-panel input[type="email"] {
+            flex: 1;
+            min-width: 250px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .control-panel input[type="email"]:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .control-panel button {
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-panel button:hover {
+            transform: translateY(-1px);
+        }
+
+        .control-panel .back-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-decoration: none;
+            padding: 11px 20px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .control-panel .back-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-top: 16px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeIn 0.5s;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #065f46;
+        }
+
+        .alert-error {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #92400e;
+        }
+
+        /* Resume Layout Grid */
+        .resume-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+        }
+
+        @media (max-width: 768px) {
+            .resume-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            background-color: #f8fafc;
+            padding: 40px 30px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .profile-section {
+            text-align: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 24px;
+        }
+
+        .profile-img {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .profile-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-title);
+            line-height: 1.25;
+            margin-bottom: 8px;
+        }
+
+        .profile-title {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-title);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+
+        .contact-item {
+            font-size: 0.88rem;
+            margin-bottom: 4px;
+            color: var(--text-body);
+            word-break: break-all;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .contact-label {
+            font-weight: 700;
+            color: #334155;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .contact-item a {
+            color: var(--primary);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--primary);
+            width: fit-content;
+        }
+
+        .contact-item a:hover {
+            border-bottom-style: solid;
+        }
+
+        /* Pill styling for lists */
+        .pills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .pill {
+            background-color: #eff6ff;
+            color: #1e40af;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            border: 1px solid #dbeafe;
+        }
+
+        .lang-pill {
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Main Content Styling */
+        .main-content {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-title);
+            position: relative;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background-color: var(--primary);
+        }
+
+        /* Project / Cert layouts */
+        .project-item {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .project-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-title);
+        }
+
+        .project-header a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .project-header a:hover {
+            text-decoration: underline;
+        }
+
+        .project-desc {
+            font-size: 0.88rem;
+            color: var(--text-body);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .cert-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .rich-text {
+            white-space: pre-line;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Print formatting */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .control-panel {
+                display: none !important;
+            }
+            .resume-container {
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+            .sidebar {
+                background-color: #f8fafc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="resume-container">
+    <!-- Top Action / Control Panel -->
+    <div class="control-panel">
+        <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4-4 4m0 0-4-4m4 4V4"/></svg>
+            Export Options
+        </h2>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="/" class="back-btn">← Back to Form</a>
+            <button type="button" onclick="window.print()" style="background-color: #10b981; padding: 12px 24px; border-radius: 10px; border: none; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s; color: white;">Download PDF</button>
+        </div>
+    </div>
+
+
+    <!-- Main Resume Page -->
+    <div class="resume-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="profile-section">
+                {% if profile_photo_url %}
+                <img class="profile-img" src="{{ profile_photo_url }}" alt="Profile photo of {{ name }}" onerror="this.style.display='none';">
+                {% endif %}
+                <h1 class="profile-name">{{ name }}</h1>
+                {% if title %}
+                <div class="profile-title">{{ title }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Contact Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">Contact</div>
+                {% if email %}
+                <div class="contact-item">
+                    <div class="contact-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        Email
+                    </div>
+                    <div>{{ email }}</div>
+                </div>
+                {% endif %}
+                {% if location %}
+                <div class="contact-item">
+                    <div class="contact-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        Location
+                    </div>
+                    <div>{{ location }}</div>
+                </div>
+                {% endif %}
+                {% if professional_profiles %}
+                <div class="contact-item">
+                    <div class="contact-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        Links
+                    </div>
+                    <div>
+                        {% for url in professional_profiles.split('|') %}
+                            {% set trimmed_url = url.strip() %}
+                            {% if trimmed_url %}
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ 'https://' ~ trimmed_url.replace('https://', '').replace('http://', '') }}" target="_blank">
+                                        {{ trimmed_url.replace('https://', '').replace('http://', '').replace('www.', '') }}
+                                    </a>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Skills Section -->
+            {% if skills %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">Skills</div>
+                <div class="pills-container">
+                    {% for skill in skills.split(',') %}
+                        {% if skill.strip() %}
+                        <span class="pill">{{ skill.strip() }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Languages Section -->
+            {% if languages %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">Languages</div>
+                <div class="pills-container">
+                    {% for lang in languages.split(',') %}
+                        {% if lang.strip() %}
+                        <span class="lang-pill">{{ lang.strip() }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Content Column -->
+        <div class="main-content">
+            <!-- About Me -->
+            {% if about_me %}
+            <div class="section">
+                <div class="section-title">About Me</div>
+                <div class="rich-text">{{ about_me }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Projects -->
+            {% if projects %}
+            <div class="section">
+                <div class="section-title">Projects</div>
+                <div>
+                    {% for proj in projects.split('\n\n') %}
+                        {% if proj.strip() %}
+                            {% set lines = proj.split('\n') %}
+                            <div class="project-item">
+                                <div class="project-header">
+                                    <span>{{ lines[0] }}</span>
+                                </div>
+                                {% if lines|length > 1 %}
+                                <div class="project-desc rich-text">{{ lines[1:]|join('\n') }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Education -->
+            {% if education %}
+            <div class="section">
+                <div class="section-title">Education</div>
+                <div class="rich-text">{{ education }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Certifications -->
+            {% if certificates %}
+            <div class="section">
+                <div class="section-title">Certifications</div>
+                <div>
+                    {% for cert in certificates.split('\n') %}
+                        {% if cert.strip() %}
+                        <div class="cert-item">
+                            <span>{{ cert.strip() }}</span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Qualifications -->
+            {% if qualifications %}
+            <div class="section">
+                <div class="section-title">Qualifications</div>
+                <div class="rich-text">{{ qualifications }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
